@@ -27,6 +27,18 @@ const WEEKLY_ONLY = {
   window_type: 2,
 }
 
+/** The package-credit allowance Doubao switched to in 2026-11. */
+const PACKAGE_WINDOW = {
+  end_time: 1_795_505_409_041,
+  start_time: 0,
+  item_type: 1,
+  less_than_one_percent: false,
+  total_amount: '9,000',
+  used_amount: '449',
+  used_percent: 4,
+  window_type: 4,
+}
+
 const BONUS_GRANT = {
   end_time: 1_795_225_599_150,
   start_time: 0,
@@ -114,6 +126,23 @@ describe('normalizeWindow', () => {
     expect(millisUntilReset(window!, 2_000)).toBe(end - 2_000)
   })
 
+  it('maps the package-credit window that replaced the rolling limits', () => {
+    const window = normalizeWindow(PACKAGE_WINDOW)
+    expect(window?.type).toBe('package')
+    expect(window?.windowType).toBe(4)
+    expect(window?.usedAmount).toBe(449)
+    expect(window?.totalAmount).toBe(9000)
+    expect(window?.usedPercent).toBe(4)
+    // Only an expiry is sent: the window bills from first use.
+    expect(window?.resetsAt).toBe(PACKAGE_WINDOW.end_time)
+    expect(millisUntilReset(window!, 1_000)).toBe(PACKAGE_WINDOW.end_time - 1_000)
+  })
+
+  it('keeps reading the retired 5-hour and weekly types', () => {
+    expect(normalizeWindow({ ...WEEKLY_ONLY, window_type: 1 })?.type).toBe('five_hour')
+    expect(normalizeWindow(WEEKLY_ONLY)?.type).toBe('weekly')
+  })
+
   it('ignores window types it does not model', () => {
     expect(normalizeWindow({ ...WEEKLY_ONLY, window_type: 9 })).toBeUndefined()
   })
@@ -124,6 +153,14 @@ describe('findWindow', () => {
     const quota = quotaOf(normalizeWindow(WEEKLY_ONLY), normalizeWindow(BONUS_GRANT, '活动赠送额度'))
     expect(findWindow(quota, 'five_hour')).toBeUndefined()
     expect(findWindow(quota, 'weekly')?.totalAmount).toBe(2100)
+  })
+
+  it('finds the package window and the grant side by side', () => {
+    const quota = quotaOf(normalizeWindow(PACKAGE_WINDOW), normalizeWindow(BONUS_GRANT, '活动赠送额度'))
+    expect(findWindow(quota, 'package')?.totalAmount).toBe(9000)
+    expect(findWindow(quota, 'incentive')?.usedAmount).toBe(782)
+    // No 5-hour bucket in this account shape.
+    expect(findWindow(quota, 'five_hour')).toBeUndefined()
   })
 
   it('finds the promotional grant in the same list', () => {

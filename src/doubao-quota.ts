@@ -8,13 +8,24 @@
  * It reports `window_limit_groups[].window_limits[]`, where each entry is one
  * rolling consumption window:
  *
+ *   window_type 4 -> package points   (the ONE main allowance since the 2026-11
+ *                                     repricing: 「标准套餐 已用 449/9,000」, i.e.
+ *                                     package credits. Reported in
+ *                                     `window_limit_section` with `item_type: 1`
+ *                                     and formatted amounts.)
+ *   window_type 3 -> bonus quota      (a promotional grant from
+ *                                     `incentive_quota_section`, with an expiry
+ *                                     but no start: 「活动赠送额度」)
+ *
+ * LEGACY — no longer returned by the live endpoint as of 2026-11, kept so an
+ * older reading (or a rollback) still maps instead of vanishing:
+ *
  *   window_type 1 -> 5-hour limit   (verified: end_time - start_time = 18e6 ms)
  *   window_type 2 -> weekly quota    (verified: end_time - start_time = 604.8e6 ms)
- *   window_type 3 -> bonus quota     (a promotional grant from `incentive_quota_section`,
- *                                     with an expiry but no start: "activity bonus quota")
  *
- * The window length was confirmed arithmetically from the server's own
- * timestamps rather than inferred from the UI, so the mapping is pinned.
+ * Doubao replaced the rolling 5-hour/week windows with a single package-credit
+ * allowance; an account that still reports the old types maps them as before,
+ * and one that reports neither simply has no such row.
  */
 import { loadDoubaoCredentials } from './doubao-auth.ts'
 import { buildHeaders, buildQueryUrl, QUOTA_ENDPOINT } from './doubao-upstream.ts'
@@ -22,7 +33,7 @@ import { buildHeaders, buildQueryUrl, QUOTA_ENDPOINT } from './doubao-upstream.t
 /** Quota results are cached briefly so a chatty session does not hammer the API. */
 export const QUOTA_TTL_MS = 5 * 60 * 1000
 
-export type QuotaWindowType = 'five_hour' | 'weekly' | 'incentive'
+export type QuotaWindowType = 'package' | 'five_hour' | 'weekly' | 'incentive'
 
 export interface QuotaWindow {
   type: QuotaWindowType
@@ -103,6 +114,9 @@ function parseAmount(value: string | number | undefined): number | undefined {
 }
 
 function mapWindowType(value: number): QuotaWindowType | undefined {
+  // 4 is the current main allowance (package credits); 1 and 2 are the retired
+  // 5-hour/week windows, kept so an older payload still parses.
+  if (value === 4) return 'package'
   if (value === 1) return 'five_hour'
   if (value === 2) return 'weekly'
   if (value === 3) return 'incentive'

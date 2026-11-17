@@ -154,11 +154,29 @@ export interface DoubaoQuotaView {
   plan: string | null
   exhausted: boolean
   windows: {
+    /**
+     * The main allowance: package credits (`window_type: 4`).
+     *
+     * Since Doubao retired the rolling 5-hour/week windows this is the
+     * only window the account is actually billed against, so the card
+     * leads with it. Null when the plan reports neither shape.
+     */
+    package: QuotaWindowView | null
+    /** Retired 5-hour window; only an older payload still reports it. */
     fiveHour: QuotaWindowView | null
+    /** Retired weekly window; only an older payload still reports it. */
     weekly: QuotaWindowView | null
     /** Promotional grants ("活动赠送额度"); usually zero or one. */
     incentive: QuotaWindowView[]
   }
+  /**
+   * Remaining credits summed over every window that reports amounts.
+   *
+   * This is the headline number the app shows (「可用额度 10,060」): the
+   * package balance plus the bonus balance. Null when no window reports
+   * amounts at all — a percentage-only plan must not be shown as "0".
+   */
+  available: number | null
   fetchedAt: number
   error: string | null
 }
@@ -185,6 +203,25 @@ function viewOf(window: QuotaWindow | undefined): QuotaWindowView | null {
   }
 }
 
+/**
+ * Sum what is left across every window that reports BOTH amounts.
+ *
+ * Windows are disjoint entitlements (a package balance and a bonus
+ * balance), so the ceiling is their sum. A window that reports only a
+ * percentage contributes nothing rather than a guess: a made-up number
+ * next to real credits is worse than a partial total.
+ */
+function remainingTotal(quota: { windows: QuotaWindow[] }): number | null {
+  let total = 0
+  let saw = false
+  for (const window of quota.windows) {
+    if (window.usedAmount === undefined || window.totalAmount === undefined) continue
+    total += Math.max(0, window.totalAmount - window.usedAmount)
+    saw = true
+  }
+  return saw ? total : null
+}
+
 export async function doubaoQuotaView(options: { force?: boolean } = {}): Promise<DoubaoQuotaView> {
   const quota = await fetchQuota(options.force === true ? { force: true } : {})
   const fiveHour = findWindow(quota, 'five_hour')
@@ -195,6 +232,7 @@ export async function doubaoQuotaView(options: { force?: boolean } = {}): Promis
     plan: quota.plan ?? null,
     exhausted: quota.exhausted,
     windows: {
+      package: viewOf(findWindow(quota, 'package')),
       fiveHour: viewOf(fiveHour),
       weekly: viewOf(weekly),
       incentive: quota.windows
@@ -202,6 +240,7 @@ export async function doubaoQuotaView(options: { force?: boolean } = {}): Promis
         .map((window) => viewOf(window))
         .filter((window): window is QuotaWindowView => window !== null),
     },
+    available: remainingTotal(quota),
     fetchedAt: quota.fetchedAt,
     error: quota.error ?? null,
   }

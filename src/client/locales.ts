@@ -16,6 +16,8 @@ export const zh = {
 
   'card.navLabel': '豆包',
   'quota.plan': '套餐',
+  'quota.package': '套餐积分',
+  'quota.available': '可用额度',
   'quota.fiveHour': '5 小时限额',
   'quota.weekly': '周额度',
   'quota.used': '已用 {percent}%',
@@ -125,6 +127,8 @@ export const en: Record<DoubaoCardKey, string> = {
   'card.subtitle': 'One QR sign-in in a browser window, then plain HTTP; no Doubao app required.',
 
   'quota.plan': 'Plan',
+  'quota.package': 'Package credits',
+  'quota.available': 'Available',
   'quota.fiveHour': '5-hour limit',
   'quota.weekly': 'Weekly quota',
   'quota.used': '{percent}% used',

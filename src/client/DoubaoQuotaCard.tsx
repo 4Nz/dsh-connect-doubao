@@ -731,6 +731,40 @@ export function DoubaoQuotaCard(props: DoubaoCardProps): ReactElement {
           <span>{t('quota.plan')}</span>
           <span className="dbq-count">{quota?.plan ?? '—'}</span>
         </div>
+        {/*
+          The headline number the Doubao app itself leads with: package
+          balance + bonus balance. It is a SUM of disjoint entitlements,
+          not a percentage of anything, so it gets a figure instead of a
+          bar — a bar would imply a ceiling that does not exist.
+        */}
+        {quota?.available !== null && quota?.available !== undefined && (
+          <div className="dbq-row">
+            <div className="dbq-row-head">
+              <span className="dbq-label">{t('quota.available')}</span>
+              <span className="dbq-figure">{quota.available.toLocaleString('en-US')}</span>
+            </div>
+          </div>
+        )}
+        {/*
+          The package balance is the ONE allowance Doubao bills against
+          since the rolling windows were retired, so it leads. The 5-hour
+          and weekly rows below only render when a plan still reports
+          them — an empty greyed row for a window that no longer exists
+          is noise, not information.
+        */}
+        {quota?.windows.package !== null && quota?.windows.package !== undefined && (
+          <QuotaBar
+            label={t('quota.package')}
+            usedPercent={quota.windows.package.usedPercent}
+            resetsInMs={quota.windows.package.resetsInMs}
+            resetsAt={quota.windows.package.resetsAt}
+            startsOnUse={quota.windows.package.startsOnUse}
+            usedAmount={quota.windows.package.usedAmount}
+            totalAmount={quota.windows.package.totalAmount}
+            t={t}
+            now={now}
+          />
+        )}
         {(quota?.windows.incentive ?? []).map((window, index) => (
           <QuotaBar
             key={`incentive-${index}`}
@@ -745,28 +779,33 @@ export function DoubaoQuotaCard(props: DoubaoCardProps): ReactElement {
             now={now}
           />
         ))}
-        <QuotaBar
-          label={t('quota.fiveHour')}
-          usedPercent={quota?.windows.fiveHour?.usedPercent}
-          resetsInMs={quota?.windows.fiveHour?.resetsInMs}
-          resetsAt={quota?.windows.fiveHour?.resetsAt}
-          startsOnUse={quota?.windows.fiveHour?.startsOnUse}
-          usedAmount={quota?.windows.fiveHour?.usedAmount}
-          totalAmount={quota?.windows.fiveHour?.totalAmount}
-          t={t}
-          now={now}
-        />
-        <QuotaBar
-          label={t('quota.weekly')}
-          usedPercent={quota?.windows.weekly?.usedPercent}
-          resetsInMs={quota?.windows.weekly?.resetsInMs}
-          resetsAt={quota?.windows.weekly?.resetsAt}
-          startsOnUse={quota?.windows.weekly?.startsOnUse}
-          usedAmount={quota?.windows.weekly?.usedAmount}
-          totalAmount={quota?.windows.weekly?.totalAmount}
-          t={t}
-          now={now}
-        />
+        {/* Retired windows: only an older payload still reports these. */}
+        {quota?.windows.fiveHour !== null && quota?.windows.fiveHour !== undefined && (
+          <QuotaBar
+            label={t('quota.fiveHour')}
+            usedPercent={quota.windows.fiveHour.usedPercent}
+            resetsInMs={quota.windows.fiveHour.resetsInMs}
+            resetsAt={quota.windows.fiveHour.resetsAt}
+            startsOnUse={quota.windows.fiveHour.startsOnUse}
+            usedAmount={quota.windows.fiveHour.usedAmount}
+            totalAmount={quota.windows.fiveHour.totalAmount}
+            t={t}
+            now={now}
+          />
+        )}
+        {quota?.windows.weekly !== null && quota?.windows.weekly !== undefined && (
+          <QuotaBar
+            label={t('quota.weekly')}
+            usedPercent={quota.windows.weekly.usedPercent}
+            resetsInMs={quota.windows.weekly.resetsInMs}
+            resetsAt={quota.windows.weekly.resetsAt}
+            startsOnUse={quota.windows.weekly.startsOnUse}
+            usedAmount={quota.windows.weekly.usedAmount}
+            totalAmount={quota.windows.weekly.totalAmount}
+            t={t}
+            now={now}
+          />
+        )}
         <div className="dbq-actions">
           <button type="button" className="dbq-btn" onClick={() => void onRefresh()} disabled={busy}>
             {busy ? t('quota.refreshing') : t('quota.refresh')}

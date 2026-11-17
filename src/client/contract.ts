@@ -44,11 +44,20 @@ export interface DoubaoQuotaView {
   /** True when Doubao reports all entitlements consumed. */
   exhausted: boolean
   windows: {
+    /** The main allowance: package credits (`window_type: 4`). */
+    package: DoubaoQuotaWindowView | null
+    /** Retired 5-hour window; only an older payload still reports it. */
     fiveHour: DoubaoQuotaWindowView | null
+    /** Retired weekly window; only an older payload still reports it. */
     weekly: DoubaoQuotaWindowView | null
     /** Promotional grants ("活动赠送额度"); usually zero or one. */
     incentive: DoubaoQuotaWindowView[]
   }
+  /**
+   * Remaining credits across every window that reports amounts —
+   * the app's own 「可用额度」 headline. Null when nothing reports amounts.
+   */
+  available: number | null
   /** Epoch ms when this reading was taken. */
   fetchedAt: number
   /** Host-side failure text, or null. */

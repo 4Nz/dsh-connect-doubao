@@ -189,7 +189,7 @@ describe('DoubaoQuotaCard session stats & token usage rendering', () => {
             profile: 'C:\\Users\\test',
             plan: '标准套餐',
             exhausted: false,
-            windows: { fiveHour: null, weekly: null, incentive: [] },
+            windows: { package: null, fiveHour: null, weekly: null, incentive: [] }, available: null,
             fetchedAt: 5000,
             error: null,
           }),

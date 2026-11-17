@@ -188,6 +188,7 @@ export async function runDoctor(): Promise<DoctorReport> {
           : `${window.usedPercent}%`
       return `${window.label ?? 'bonus'} ${amounts}, ${formatDuration(millisUntilReset(window))} to expiry`
     }
+    const packageWindow = findWindow(quota, 'package')
     const fiveHour = findWindow(quota, 'five_hour')
     const weekly = findWindow(quota, 'weekly')
     const grant = findWindow(quota, 'incentive')
@@ -200,10 +201,13 @@ export async function runDoctor(): Promise<DoctorReport> {
       status: quota.error === undefined ? 'ok' : 'fail',
       detail:
         quota.error ??
-        `${quota.plan ?? 'unknown plan'}; 5-hour=${describeWindow(fiveHour)}; weekly=${describeWindow(weekly)}; bonus=${describeGrant(grant)}`,
+        `${quota.plan ?? 'unknown plan'}; package=${describeWindow(packageWindow)}; 5-hour=${describeWindow(fiveHour)}; weekly=${describeWindow(weekly)}; bonus=${describeGrant(grant)}`,
       data: {
         plan: quota.plan ?? null,
         exhausted: quota.exhausted,
+        packagePercent: packageWindow?.usedPercent ?? null,
+        packageUsedAmount: packageWindow?.usedAmount ?? null,
+        packageTotalAmount: packageWindow?.totalAmount ?? null,
         fiveHourPercent: fiveHour?.usedPercent ?? null,
         weeklyPercent: weekly?.usedPercent ?? null,
         grantPercent: grant?.usedPercent ?? null,
